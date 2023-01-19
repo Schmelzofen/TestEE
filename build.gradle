@@ -1,0 +1,50 @@
+plugins {
+    id "com.bmuschko.docker-remote-api" version "${dockerRemoteApiPluginVersion}"
+    id "maven-publish"
+    id "com.github.ben-manes.versions" version "${versionsPluginVersion}"
+}
+
+if (project.hasProperty('projVersion')) {
+    project.version = project.projVersion
+}
+def version = project.version
+
+task(getVersion) {
+    println(project.version)
+}
+
+allprojects {
+    apply plugin: "base"
+}
+
+subprojects {
+    apply plugin: "maven-publish"
+    apply plugin: "com.bmuschko.docker-remote-api"
+
+    docker {
+        registryCredentials {
+            url = dockerRegistryForPublish
+            username = project.findProperty("repository_username")
+            password = project.findProperty("repository_password")
+        }
+    }
+
+    ext.dockerRegistryCredentialsForRead = docker {
+        registryCredentials {
+            url = dockerRegistryForRead
+            username = project.findProperty("repository_username")
+            password = project.findProperty("repository_password")
+        }
+    }
+
+    ext.calculateShortTag = { String name -> "your-project-name-${name}" }
+    ext.calculateFullTag = { String name -> "${dockerRegistryForPublish}/${group}/${name}:${version}" }
+}
+
+allprojects {
+	tasks.withType(JavaCompile) {
+		sourceCompatibility = 11
+		targetCompatibility = 11
+	}
+}
+
